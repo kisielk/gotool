@@ -31,8 +31,10 @@ package gotool
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import (
+	"fmt"
 	"go/build"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -112,5 +114,134 @@ func matchPackages(pattern string) []string {
 			return nil
 		})
 	}
+	return pkgs
+}
+
+// importPathsNoDotExpansion returns the import paths to use for the given
+// command line, but it does no ... expansion.
+func importPathsNoDotExpansion(args []string) []string {
+	if len(args) == 0 {
+		return []string{"."}
+	}
+	var out []string
+	for _, a := range args {
+		// Arguments are supposed to be import paths, but
+		// as a courtesy to Windows developers, rewrite \ to /
+		// in command-line arguments.  Handles .\... and so on.
+		if filepath.Separator == '\\' {
+			a = strings.Replace(a, `\`, `/`, -1)
+		}
+
+		// Put argument in canonical form, but preserve leading ./.
+		if strings.HasPrefix(a, "./") {
+			a = "./" + path.Clean(a)
+			if a == "./." {
+				a = "."
+			}
+		} else {
+			a = path.Clean(a)
+		}
+		if a == "all" || a == "std" {
+			out = append(out, allPackages(a)...)
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
+}
+
+// importPaths returns the import paths to use for the given command line.
+func importPaths(args []string) []string {
+	args = importPathsNoDotExpansion(args)
+	var out []string
+	for _, a := range args {
+		if strings.Contains(a, "...") {
+			if build.IsLocalImport(a) {
+				out = append(out, allPackagesInFS(a)...)
+			} else {
+				out = append(out, allPackages(a)...)
+			}
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
+}
+
+// allPackages returns all the packages that can be found
+// under the $GOPATH directories and $GOROOT matching pattern.
+// The pattern is either "all" (all packages), "std" (standard packages)
+// or a path including "...".
+func allPackages(pattern string) []string {
+	pkgs := matchPackages(pattern)
+	if len(pkgs) == 0 {
+		fmt.Fprintf(os.Stderr, "warning: %q matched no packages\n", pattern)
+	}
+	return pkgs
+}
+
+// allPackagesInFS is like allPackages but is passed a pattern
+// beginning ./ or ../, meaning it should scan the tree rooted
+// at the given directory.  There are ... in the pattern too.
+func allPackagesInFS(pattern string) []string {
+	pkgs := matchPackagesInFS(pattern)
+	if len(pkgs) == 0 {
+		fmt.Fprintf(os.Stderr, "warning: %q matched no packages\n", pattern)
+	}
+	return pkgs
+}
+
+func matchPackagesInFS(pattern string) []string {
+	// Find directory to begin the scan.
+	// Could be smarter but this one optimization
+	// is enough for now, since ... is usually at the
+	// end of a path.
+	i := strings.Index(pattern, "...")
+	dir, _ := path.Split(pattern[:i])
+
+	// pattern begins with ./ or ../.
+	// path.Clean will discard the ./ but not the ../.
+	// We need to preserve the ./ for pattern matching
+	// and in the returned import paths.
+	prefix := ""
+	if strings.HasPrefix(pattern, "./") {
+		prefix = "./"
+	}
+	match := matchPattern(pattern)
+
+	var pkgs []string
+	filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
+		if err != nil || !fi.IsDir() {
+			return nil
+		}
+		if path == dir {
+			// filepath.Walk starts at dir and recurses. For the recursive case,
+			// the path is the result of filepath.Join, which calls filepath.Clean.
+			// The initial case is not Cleaned, though, so we do this explicitly.
+			//
+			// This converts a path like "./io/" to "io". Without this step, running
+			// "cd $GOROOT/src/pkg; go list ./io/..." would incorrectly skip the io
+			// package, because prepending the prefix "./" to the unclean path would
+			// result in "././io", and match("././io") returns false.
+			path = filepath.Clean(path)
+		}
+
+		// Avoid .foo, _foo, and testdata directory trees, but do not avoid "." or "..".
+		_, elem := filepath.Split(path)
+		dot := strings.HasPrefix(elem, ".") && elem != "." && elem != ".."
+		if dot || strings.HasPrefix(elem, "_") || elem == "testdata" {
+			return filepath.SkipDir
+		}
+
+		name := prefix + filepath.ToSlash(path)
+		if !match(name) {
+			return nil
+		}
+		if _, err = build.ImportDir(path, 0); err != nil {
+			return nil
+		}
+		pkgs = append(pkgs, name)
+		return nil
+	})
 	return pkgs
 }

@@ -4,10 +4,10 @@ package gotool
 
 // export functions as here to make it easier to keep the implementations up to date with upstream.
 
-// MatchPackages returns all matching packages found
-// under the $GOROOT and $GOPATH directories.
-// The pattern is either "all" (all packages), "std" (standard packages)
-// or a path in which "..." means "any string".
-func MatchPackages(pattern string) []string {
-	return matchPackages(pattern)
+// ImportPaths returns the import paths to use for the given arguments.
+// The path "all" is expanded to all packages in $GOPATH and $GOROOT.
+// The path "std" is expanded to all packages in the Go standard library.
+// The string "..." is treated as a wildcard within a path.
+func ImportPaths(args []string) []string {
+	return importPaths(args)
 }
