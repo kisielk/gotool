@@ -107,8 +107,10 @@ func matchPackages(pattern string) []string {
 				return nil
 			}
 			_, err = buildContext.ImportDir(path, 0)
-			if err != nil && strings.Contains(err.Error(), "no Go source files") {
-				return nil
+			if err != nil {
+				if _, noGo := err.(*build.NoGoError); noGo {
+					return nil
+				}
 			}
 			pkgs = append(pkgs, name)
 			return nil
