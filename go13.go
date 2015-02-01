@@ -2,6 +2,9 @@
 
 package gotool
 
-import "path/filepath"
+import (
+	"path/filepath"
+	"runtime"
+)
 
-var gorootSrcPkg = filepath.Join(goroot, "src/pkg")
+var gorootSrcPkg = filepath.Join(runtime.GOROOT(), "src", "pkg")

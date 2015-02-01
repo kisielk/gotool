@@ -37,11 +37,8 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 )
-
-var goroot = filepath.Clean(runtime.GOROOT())
 
 var buildContext = build.Default
 
