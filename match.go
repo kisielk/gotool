@@ -41,10 +41,7 @@ import (
 	"strings"
 )
 
-var (
-	goroot       = filepath.Clean(runtime.GOROOT())
-	gorootSrcPkg = filepath.Join(goroot, "src/pkg")
-)
+var goroot = filepath.Clean(runtime.GOROOT())
 
 var buildContext = build.Default
 
