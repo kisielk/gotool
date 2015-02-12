@@ -100,13 +100,16 @@ func matchPackages(pattern string) []string {
 			if !match(name) {
 				return nil
 			}
-			_, err = buildContext.ImportDir(path, 0)
+			if path, err = filepath.Abs(path); err != nil {
+				return nil
+			}
+			pkg, err := buildContext.ImportDir(path, 0)
 			if err != nil {
 				if _, noGo := err.(*build.NoGoError); noGo {
 					return nil
 				}
 			}
-			pkgs = append(pkgs, name)
+			pkgs = append(pkgs, pkg.ImportPath)
 			return nil
 		})
 	}
@@ -233,10 +236,14 @@ func matchPackagesInFS(pattern string) []string {
 		if !match(name) {
 			return nil
 		}
-		if _, err = build.ImportDir(path, 0); err != nil {
+		if path, err = filepath.Abs(path); err != nil {
 			return nil
 		}
-		pkgs = append(pkgs, name)
+		pkg, err := build.ImportDir(path, 0)
+		if err != nil {
+			return nil
+		}
+		pkgs = append(pkgs, pkg.ImportPath)
 		return nil
 	})
 	return pkgs
