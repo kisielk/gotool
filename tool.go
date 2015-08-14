@@ -9,5 +9,5 @@ package gotool
 // The path "std" is expanded to all packages in the Go standard library.
 // The string "..." is treated as a wildcard within a path.
 func ImportPaths(args []string) []string {
-	return importPaths(args)
+	return DefaultContext.ImportPaths(args)
 }
