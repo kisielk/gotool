@@ -152,7 +152,12 @@ func (c Context) importPathsNoDotExpansion(args []string) []string {
 	return out
 }
 
-// importPaths returns the import paths to use for the given command line.
+// ImportPaths returns the import paths to use for the given arguments.
+//
+// The path "all" is expanded to all packages in $GOPATH and $GOROOT.
+// The path "std" is expanded to all packages in the Go standard library.
+// The string "..." is treated as a wildcard within a path.
+// Relative import paths are not converted to full import paths.
 func (c Context) ImportPaths(args []string) []string {
 	args = c.importPathsNoDotExpansion(args)
 	var out []string
