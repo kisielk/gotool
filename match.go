@@ -67,8 +67,10 @@ func matchPattern(pattern string) func(name string) bool {
 
 func (c Context) matchPackages(pattern string) []string {
 	match := func(string) bool { return true }
-	if pattern != "all" && pattern != "std" {
+	treeCanMatch := func(string) bool { return true }
+	if !isMetaPackage(pattern) {
 		match = matchPattern(pattern)
+		treeCanMatch = treeCanMatchPattern(pattern)
 	}
 
 	have := map[string]bool{
@@ -80,11 +82,15 @@ func (c Context) matchPackages(pattern string) []string {
 	var pkgs []string
 
 	for _, src := range c.BuildContext.SrcDirs() {
-		if pattern == "std" && src != gorootSrcPkg {
+		if (pattern == "std" || pattern == "cmd") && src != gorootSrcPkg {
 			continue
 		}
 		src = filepath.Clean(src) + string(filepath.Separator)
-		filepath.Walk(src, func(path string, fi os.FileInfo, err error) error {
+		root := src
+		if pattern == "cmd" {
+			root += "cmd" + string(filepath.Separator)
+		}
+		filepath.Walk(root, func(path string, fi os.FileInfo, err error) error {
 			if err != nil || !fi.IsDir() || path == src {
 				return nil
 			}
@@ -96,7 +102,12 @@ func (c Context) matchPackages(pattern string) []string {
 			}
 
 			name := filepath.ToSlash(path[len(src):])
-			if pattern == "std" && strings.Contains(name, ".") {
+			if pattern == "std" && (!isStandardImportPath(name) || name == "cmd") {
+				// The name "std" is only the standard library.
+				// If the name is cmd, it's the root of the command tree.
+				return filepath.SkipDir
+			}
+			if !treeCanMatch(name) {
 				return filepath.SkipDir
 			}
 			if have[name] {
@@ -129,7 +140,7 @@ func (c Context) importPathsNoDotExpansion(args []string) []string {
 	for _, a := range args {
 		// Arguments are supposed to be import paths, but
 		// as a courtesy to Windows developers, rewrite \ to /
-		// in command-line arguments.  Handles .\... and so on.
+		// in command-line arguments. Handles .\... and so on.
 		if filepath.Separator == '\\' {
 			a = strings.Replace(a, `\`, `/`, -1)
 		}
@@ -143,8 +154,8 @@ func (c Context) importPathsNoDotExpansion(args []string) []string {
 		} else {
 			a = path.Clean(a)
 		}
-		if a == "all" || a == "std" {
-			out = append(out, c.allPackages(a)...)
+		if isMetaPackage(a) {
+			out = append(out, allPackages(a)...)
 			continue
 		}
 		out = append(out, a)
@@ -227,7 +238,7 @@ func matchPackagesInFS(pattern string) []string {
 			// The initial case is not Cleaned, though, so we do this explicitly.
 			//
 			// This converts a path like "./io/" to "io". Without this step, running
-			// "cd $GOROOT/src/pkg; go list ./io/..." would incorrectly skip the io
+			// "cd $GOROOT/src; go list ./io/..." would incorrectly skip the io
 			// package, because prepending the prefix "./" to the unclean path would
 			// result in "././io", and match("././io") returns false.
 			path = filepath.Clean(path)
@@ -244,11 +255,70 @@ func matchPackagesInFS(pattern string) []string {
 		if !match(name) {
 			return nil
 		}
-		if _, err = build.ImportDir(path, 0); err != nil {
+
+		// We keep the directory if we can import it, or if we can't import it
+		// due to invalid Go source files. This means that directories containing
+		// parse errors will be built (and fail) instead of being silently skipped
+		// as not matching the pattern. Go 1.5 and earlier skipped, but that
+		// behavior means people miss serious mistakes.
+		// See golang.org/issue/11407.
+		if p, err := c.BuildContext.ImportDir(path, 0); err != nil && (p == nil || len(p.InvalidGoFiles) == 0) {
+			if _, noGo := err.(*build.NoGoError); !noGo {
+				log.Print(err)
+			}
 			return nil
 		}
 		pkgs = append(pkgs, name)
 		return nil
 	})
 	return pkgs
+}
+
+// isMetaPackage checks if name is a reserved package name that expands to multiple packages
+func isMetaPackage(name string) bool {
+	return name == "std" || name == "cmd" || name == "all"
+}
+
+// isStandardImportPath reports whether $GOROOT/src/path should be considered
+// part of the standard distribution. For historical reasons we allow people to add
+// their own code to $GOROOT instead of using $GOPATH, but we assume that
+// code will start with a domain name (dot in the first element).
+func isStandardImportPath(path string) bool {
+	i := strings.Index(path, "/")
+	if i < 0 {
+		i = len(path)
+	}
+	elem := path[:i]
+	return !strings.Contains(elem, ".")
+}
+
+// hasPathPrefix reports whether the path s begins with the
+// elements in prefix.
+func hasPathPrefix(s, prefix string) bool {
+	switch {
+	default:
+		return false
+	case len(s) == len(prefix):
+		return s == prefix
+	case len(s) > len(prefix):
+		if prefix != "" && prefix[len(prefix)-1] == '/' {
+			return strings.HasPrefix(s, prefix)
+		}
+		return s[len(prefix)] == '/' && s[:len(prefix)] == prefix
+	}
+}
+
+// treeCanMatchPattern(pattern)(name) reports whether
+// name or children of name can possibly match pattern.
+// Pattern is the same limited glob accepted by matchPattern.
+func treeCanMatchPattern(pattern string) func(name string) bool {
+	wildCard := false
+	if i := strings.Index(pattern, "..."); i >= 0 {
+		wildCard = true
+		pattern = pattern[:i]
+	}
+	return func(name string) bool {
+		return len(name) <= len(pattern) && hasPathPrefix(pattern, name) ||
+			wildCard && strings.HasPrefix(name, pattern)
+	}
 }
