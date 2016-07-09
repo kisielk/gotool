@@ -169,6 +169,7 @@ func (c Context) importPathsNoDotExpansion(args []string) []string {
 // The path "std" is expanded to all packages in the Go standard library.
 // The string "..." is treated as a wildcard within a path.
 // Relative import paths are not converted to full import paths.
+// If args is empty, a single element "." is returned.
 func (c Context) ImportPaths(args []string) []string {
 	args = c.importPathsNoDotExpansion(args)
 	var out []string
