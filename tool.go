@@ -1,5 +1,6 @@
-// Package gotool is a library of utility functions used to implement the standard "Go" tool provided
-// as a convenience to developers who want to write tools with similar semantics.
+// Package gotool contains utility functions used to implement the standard
+// "cmd/go" tool, provided as a convenience to developers who want to write
+// tools with similar semantics.
 package gotool
 
 import "go/build"
