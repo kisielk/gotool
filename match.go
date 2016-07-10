@@ -33,6 +33,7 @@ package gotool
 import (
 	"fmt"
 	"go/build"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -155,7 +156,7 @@ func (c Context) importPathsNoDotExpansion(args []string) []string {
 			a = path.Clean(a)
 		}
 		if isMetaPackage(a) {
-			out = append(out, allPackages(a)...)
+			out = append(out, c.allPackages(a)...)
 			continue
 		}
 		out = append(out, a)
@@ -263,7 +264,7 @@ func matchPackagesInFS(pattern string) []string {
 		// as not matching the pattern. Go 1.5 and earlier skipped, but that
 		// behavior means people miss serious mistakes.
 		// See golang.org/issue/11407.
-		if p, err := c.BuildContext.ImportDir(path, 0); err != nil && (p == nil || len(p.InvalidGoFiles) == 0) {
+		if p, err := build.ImportDir(path, 0); err != nil && (p == nil || len(p.InvalidGoFiles) == 0) {
 			if _, noGo := err.(*build.NoGoError); !noGo {
 				log.Print(err)
 			}
