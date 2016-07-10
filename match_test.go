@@ -28,7 +28,10 @@
 
 package gotool
 
-import "testing"
+import (
+	"sort"
+	"testing"
+)
 
 // This file contains code from the Go distribution.
 
@@ -109,6 +112,23 @@ func testStringPairs(t *testing.T, name string, tests []stringPairTest, f func(s
 	for _, tt := range tests {
 		if out := f(tt.in1, tt.in2); out != tt.out {
 			t.Errorf("%s(%q, %q) = %v, want %v", name, tt.in1, tt.in2, out, tt.out)
+		}
+	}
+}
+
+// containsString reports whether strings contains x. strings is assumed to be sorted.
+func containsString(strings []string, x string) bool {
+	return strings[sort.SearchStrings(strings, x)] == x
+}
+
+func TestMatchStdPackages(t *testing.T) {
+	packages := DefaultContext.matchPackages("std")
+	sort.Strings(packages)
+	// some common packages all Go versions should have
+	commonPackages := []string{"bufio", "bytes", "crypto", "fmt", "io", "os"}
+	for _, p := range commonPackages {
+		if !containsString(packages, p) {
+			t.Errorf("std package set doesn't contain expected package %s", p)
 		}
 	}
 }
