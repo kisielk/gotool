@@ -1,8 +1,4 @@
-package gotool
-
-// This file contains code from the Go distribution.
-
-// Copyright (c) 2012 The Go Authors. All rights reserved.
+// Copyright (c) 2009 The Go Authors. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -30,6 +26,8 @@ package gotool
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+package gotool
+
 import (
 	"fmt"
 	"go/build"
@@ -41,16 +39,10 @@ import (
 	"strings"
 )
 
-var DefaultContext = Context{
-	BuildContext: build.Default,
-}
-
-type Context struct {
-	BuildContext build.Context
-}
+// This file contains code from the Go distribution.
 
 // matchPattern(pattern)(name) reports whether
-// name matches pattern.  Pattern is a limited glob
+// name matches pattern. Pattern is a limited glob
 // pattern in which '...' means 'any string' and there
 // is no other special syntax.
 func matchPattern(pattern string) func(name string) bool {
@@ -66,7 +58,7 @@ func matchPattern(pattern string) func(name string) bool {
 	}
 }
 
-func (c Context) matchPackages(pattern string) []string {
+func (c *Context) matchPackages(pattern string) []string {
 	match := func(string) bool { return true }
 	treeCanMatch := func(string) bool { return true }
 	if !isMetaPackage(pattern) {
@@ -83,7 +75,7 @@ func (c Context) matchPackages(pattern string) []string {
 	var pkgs []string
 
 	for _, src := range c.BuildContext.SrcDirs() {
-		if (pattern == "std" || pattern == "cmd") && src != gorootSrcPkg {
+		if (pattern == "std" || pattern == "cmd") && src != gorootSrc {
 			continue
 		}
 		src = filepath.Clean(src) + string(filepath.Separator)
@@ -133,7 +125,7 @@ func (c Context) matchPackages(pattern string) []string {
 
 // importPathsNoDotExpansion returns the import paths to use for the given
 // command line, but it does no ... expansion.
-func (c Context) importPathsNoDotExpansion(args []string) []string {
+func (c *Context) importPathsNoDotExpansion(args []string) []string {
 	if len(args) == 0 {
 		return []string{"."}
 	}
@@ -164,20 +156,14 @@ func (c Context) importPathsNoDotExpansion(args []string) []string {
 	return out
 }
 
-// ImportPaths returns the import paths to use for the given arguments.
-//
-// The path "all" is expanded to all packages in $GOPATH and $GOROOT.
-// The path "std" is expanded to all packages in the Go standard library.
-// The string "..." is treated as a wildcard within a path.
-// Relative import paths are not converted to full import paths.
-// If args is empty, a single element "." is returned.
-func (c Context) ImportPaths(args []string) []string {
+// importPaths returns the import paths to use for the given command line.
+func (c *Context) importPaths(args []string) []string {
 	args = c.importPathsNoDotExpansion(args)
 	var out []string
 	for _, a := range args {
 		if strings.Contains(a, "...") {
 			if build.IsLocalImport(a) {
-				out = append(out, allPackagesInFS(a)...)
+				out = append(out, c.allPackagesInFS(a)...)
 			} else {
 				out = append(out, c.allPackages(a)...)
 			}
@@ -190,9 +176,9 @@ func (c Context) ImportPaths(args []string) []string {
 
 // allPackages returns all the packages that can be found
 // under the $GOPATH directories and $GOROOT matching pattern.
-// The pattern is either "all" (all packages), "std" (standard packages)
-// or a path including "...".
-func (c Context) allPackages(pattern string) []string {
+// The pattern is either "all" (all packages), "std" (standard packages),
+// "cmd" (standard commands), or a path including "...".
+func (c *Context) allPackages(pattern string) []string {
 	pkgs := c.matchPackages(pattern)
 	if len(pkgs) == 0 {
 		fmt.Fprintf(os.Stderr, "warning: %q matched no packages\n", pattern)
@@ -202,16 +188,16 @@ func (c Context) allPackages(pattern string) []string {
 
 // allPackagesInFS is like allPackages but is passed a pattern
 // beginning ./ or ../, meaning it should scan the tree rooted
-// at the given directory.  There are ... in the pattern too.
-func allPackagesInFS(pattern string) []string {
-	pkgs := matchPackagesInFS(pattern)
+// at the given directory. There are ... in the pattern too.
+func (c *Context) allPackagesInFS(pattern string) []string {
+	pkgs := c.matchPackagesInFS(pattern)
 	if len(pkgs) == 0 {
 		fmt.Fprintf(os.Stderr, "warning: %q matched no packages\n", pattern)
 	}
 	return pkgs
 }
 
-func matchPackagesInFS(pattern string) []string {
+func (c *Context) matchPackagesInFS(pattern string) []string {
 	// Find directory to begin the scan.
 	// Could be smarter but this one optimization
 	// is enough for now, since ... is usually at the
@@ -264,7 +250,7 @@ func matchPackagesInFS(pattern string) []string {
 		// as not matching the pattern. Go 1.5 and earlier skipped, but that
 		// behavior means people miss serious mistakes.
 		// See golang.org/issue/11407.
-		if p, err := build.ImportDir(path, 0); err != nil && shouldIgnoreImport(p) {
+		if p, err := c.BuildContext.ImportDir(path, 0); err != nil && shouldIgnoreImport(p) {
 			if _, noGo := err.(*build.NoGoError); !noGo {
 				log.Print(err)
 			}

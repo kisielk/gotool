@@ -1,5 +1,4 @@
-// +build go1.5
-// +build !go1.4
+// +build go1.6
 
 package gotool
 
@@ -9,7 +8,7 @@ import (
 	"runtime"
 )
 
-var gorootSrcPkg = filepath.Join(runtime.GOROOT(), "src", "pkg")
+var gorootSrc = filepath.Join(runtime.GOROOT(), "src", "pkg")
 
 func shouldIgnoreImport(p *build.Package) bool {
 	return p == nil || len(p.InvalidGoFiles) == 0
