@@ -1,7 +1,7 @@
 All the files in this distribution are covered under either the MIT
 license (see the file LICENSE) except some files mentioned below.
 
-match.go:
+match.go, match_test.go:
 
     Copyright (c) 2009 The Go Authors. All rights reserved.
 
