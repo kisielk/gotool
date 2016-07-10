@@ -177,7 +177,7 @@ func (c Context) ImportPaths(args []string) []string {
 	for _, a := range args {
 		if strings.Contains(a, "...") {
 			if build.IsLocalImport(a) {
-				out = append(out, allPackagesInFS(a)...)
+				out = append(out, c.allPackagesInFS(a)...)
 			} else {
 				out = append(out, c.allPackages(a)...)
 			}
@@ -203,15 +203,15 @@ func (c Context) allPackages(pattern string) []string {
 // allPackagesInFS is like allPackages but is passed a pattern
 // beginning ./ or ../, meaning it should scan the tree rooted
 // at the given directory.  There are ... in the pattern too.
-func allPackagesInFS(pattern string) []string {
-	pkgs := matchPackagesInFS(pattern)
+func (c Context) allPackagesInFS(pattern string) []string {
+	pkgs := c.matchPackagesInFS(pattern)
 	if len(pkgs) == 0 {
 		fmt.Fprintf(os.Stderr, "warning: %q matched no packages\n", pattern)
 	}
 	return pkgs
 }
 
-func matchPackagesInFS(pattern string) []string {
+func (c Context) matchPackagesInFS(pattern string) []string {
 	// Find directory to begin the scan.
 	// Could be smarter but this one optimization
 	// is enough for now, since ... is usually at the
@@ -264,7 +264,7 @@ func matchPackagesInFS(pattern string) []string {
 		// as not matching the pattern. Go 1.5 and earlier skipped, but that
 		// behavior means people miss serious mistakes.
 		// See golang.org/issue/11407.
-		if p, err := build.ImportDir(path, 0); err != nil && shouldIgnoreImport(p) {
+		if p, err := c.BuildContext.ImportDir(path, 0); err != nil && shouldIgnoreImport(p) {
 			if _, noGo := err.(*build.NoGoError); !noGo {
 				log.Print(err)
 			}
