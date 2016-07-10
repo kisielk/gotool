@@ -14,10 +14,11 @@ type Context struct {
 	BuildContext build.Context
 }
 
-// ImportPaths returns the import paths to use for the given arguments.
+// ImportPaths returns the import paths to use for the given command line.
 //
 // The path "all" is expanded to all packages in $GOPATH and $GOROOT.
 // The path "std" is expanded to all packages in the Go standard library.
+// The path "cmd" is expanded to all Go standard commands.
 // The string "..." is treated as a wildcard within a path.
 // Relative import paths are not converted to full import paths.
 // If args is empty, a single element "." is returned.
@@ -25,10 +26,12 @@ func (c *Context) ImportPaths(args []string) []string {
 	return c.importPaths(args)
 }
 
-// ImportPaths returns the import paths to use for the given arguments using default context.
+// ImportPaths returns the import paths to use for the given command line
+// using default context.
 //
 // The path "all" is expanded to all packages in $GOPATH and $GOROOT.
 // The path "std" is expanded to all packages in the Go standard library.
+// The path "cmd" is expanded to all Go standard commands.
 // The string "..." is treated as a wildcard within a path.
 // Relative import paths are not converted to full import paths.
 // If args is empty, a single element "." is returned.

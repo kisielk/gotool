@@ -42,7 +42,7 @@ import (
 // This file contains code from the Go distribution.
 
 // matchPattern(pattern)(name) reports whether
-// name matches pattern.  Pattern is a limited glob
+// name matches pattern. Pattern is a limited glob
 // pattern in which '...' means 'any string' and there
 // is no other special syntax.
 func matchPattern(pattern string) func(name string) bool {
@@ -75,7 +75,7 @@ func (c *Context) matchPackages(pattern string) []string {
 	var pkgs []string
 
 	for _, src := range c.BuildContext.SrcDirs() {
-		if (pattern == "std" || pattern == "cmd") && src != gorootSrcPkg {
+		if (pattern == "std" || pattern == "cmd") && src != gorootSrc {
 			continue
 		}
 		src = filepath.Clean(src) + string(filepath.Separator)
@@ -156,7 +156,7 @@ func (c *Context) importPathsNoDotExpansion(args []string) []string {
 	return out
 }
 
-// importPaths returns the import paths to use for the given arguments.
+// importPaths returns the import paths to use for the given command line.
 func (c *Context) importPaths(args []string) []string {
 	args = c.importPathsNoDotExpansion(args)
 	var out []string
@@ -176,8 +176,8 @@ func (c *Context) importPaths(args []string) []string {
 
 // allPackages returns all the packages that can be found
 // under the $GOPATH directories and $GOROOT matching pattern.
-// The pattern is either "all" (all packages), "std" (standard packages)
-// or a path including "...".
+// The pattern is either "all" (all packages), "std" (standard packages),
+// "cmd" (standard commands), or a path including "...".
 func (c *Context) allPackages(pattern string) []string {
 	pkgs := c.matchPackages(pattern)
 	if len(pkgs) == 0 {
@@ -188,7 +188,7 @@ func (c *Context) allPackages(pattern string) []string {
 
 // allPackagesInFS is like allPackages but is passed a pattern
 // beginning ./ or ../, meaning it should scan the tree rooted
-// at the given directory.  There are ... in the pattern too.
+// at the given directory. There are ... in the pattern too.
 func (c *Context) allPackagesInFS(pattern string) []string {
 	pkgs := c.matchPackagesInFS(pattern)
 	if len(pkgs) == 0 {

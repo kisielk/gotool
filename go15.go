@@ -9,7 +9,7 @@ import (
 	"runtime"
 )
 
-var gorootSrcPkg = filepath.Join(runtime.GOROOT(), "src", "pkg")
+var gorootSrc = filepath.Join(runtime.GOROOT(), "src", "pkg")
 
 func shouldIgnoreImport(p *build.Package) bool {
 	return p == nil || len(p.InvalidGoFiles) == 0
