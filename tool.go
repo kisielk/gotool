@@ -7,11 +7,14 @@ import "go/build"
 
 // Export functions here to make it easier to keep the implementations up to date with upstream.
 
+// DefaultContext is the default context that uses build.Default.
 var DefaultContext = Context{
 	BuildContext: build.Default,
 }
 
+// A Context specifies the supporting context.
 type Context struct {
+	// BuildContext is the build.Context that is used when computing import paths.
 	BuildContext build.Context
 }
 
