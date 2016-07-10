@@ -66,7 +66,7 @@ func matchPattern(pattern string) func(name string) bool {
 	}
 }
 
-func (c Context) matchPackages(pattern string) []string {
+func (c *Context) matchPackages(pattern string) []string {
 	match := func(string) bool { return true }
 	treeCanMatch := func(string) bool { return true }
 	if !isMetaPackage(pattern) {
@@ -133,7 +133,7 @@ func (c Context) matchPackages(pattern string) []string {
 
 // importPathsNoDotExpansion returns the import paths to use for the given
 // command line, but it does no ... expansion.
-func (c Context) importPathsNoDotExpansion(args []string) []string {
+func (c *Context) importPathsNoDotExpansion(args []string) []string {
 	if len(args) == 0 {
 		return []string{"."}
 	}
@@ -171,7 +171,7 @@ func (c Context) importPathsNoDotExpansion(args []string) []string {
 // The string "..." is treated as a wildcard within a path.
 // Relative import paths are not converted to full import paths.
 // If args is empty, a single element "." is returned.
-func (c Context) ImportPaths(args []string) []string {
+func (c *Context) ImportPaths(args []string) []string {
 	args = c.importPathsNoDotExpansion(args)
 	var out []string
 	for _, a := range args {
@@ -192,7 +192,7 @@ func (c Context) ImportPaths(args []string) []string {
 // under the $GOPATH directories and $GOROOT matching pattern.
 // The pattern is either "all" (all packages), "std" (standard packages)
 // or a path including "...".
-func (c Context) allPackages(pattern string) []string {
+func (c *Context) allPackages(pattern string) []string {
 	pkgs := c.matchPackages(pattern)
 	if len(pkgs) == 0 {
 		fmt.Fprintf(os.Stderr, "warning: %q matched no packages\n", pattern)
@@ -203,7 +203,7 @@ func (c Context) allPackages(pattern string) []string {
 // allPackagesInFS is like allPackages but is passed a pattern
 // beginning ./ or ../, meaning it should scan the tree rooted
 // at the given directory.  There are ... in the pattern too.
-func (c Context) allPackagesInFS(pattern string) []string {
+func (c *Context) allPackagesInFS(pattern string) []string {
 	pkgs := c.matchPackagesInFS(pattern)
 	if len(pkgs) == 0 {
 		fmt.Fprintf(os.Stderr, "warning: %q matched no packages\n", pattern)
@@ -211,7 +211,7 @@ func (c Context) allPackagesInFS(pattern string) []string {
 	return pkgs
 }
 
-func (c Context) matchPackagesInFS(pattern string) []string {
+func (c *Context) matchPackagesInFS(pattern string) []string {
 	// Find directory to begin the scan.
 	// Could be smarter but this one optimization
 	// is enough for now, since ... is usually at the
