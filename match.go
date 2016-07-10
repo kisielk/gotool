@@ -1,7 +1,3 @@
-package gotool
-
-// This file contains code from the Go distribution.
-
 // Copyright (c) 2009 The Go Authors. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,6 +26,8 @@ package gotool
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+package gotool
+
 import (
 	"fmt"
 	"go/build"
@@ -41,13 +39,7 @@ import (
 	"strings"
 )
 
-var DefaultContext = Context{
-	BuildContext: build.Default,
-}
-
-type Context struct {
-	BuildContext build.Context
-}
+// This file contains code from the Go distribution.
 
 // matchPattern(pattern)(name) reports whether
 // name matches pattern.  Pattern is a limited glob
@@ -164,14 +156,8 @@ func (c *Context) importPathsNoDotExpansion(args []string) []string {
 	return out
 }
 
-// ImportPaths returns the import paths to use for the given arguments.
-//
-// The path "all" is expanded to all packages in $GOPATH and $GOROOT.
-// The path "std" is expanded to all packages in the Go standard library.
-// The string "..." is treated as a wildcard within a path.
-// Relative import paths are not converted to full import paths.
-// If args is empty, a single element "." is returned.
-func (c *Context) ImportPaths(args []string) []string {
+// importPaths returns the import paths to use for the given arguments.
+func (c *Context) importPaths(args []string) []string {
 	args = c.importPathsNoDotExpansion(args)
 	var out []string
 	for _, a := range args {
