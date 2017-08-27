@@ -56,6 +56,8 @@ func matchPattern(pattern string) func(name string) bool {
 	return reg.MatchString
 }
 
+// matchPackages returns a list of package paths matching pattern
+// (see go help packages for pattern syntax).
 func (c *Context) matchPackages(pattern string) []string {
 	match := func(string) bool { return true }
 	treeCanMatch := func(string) bool { return true }
@@ -195,6 +197,9 @@ func (c *Context) allPackagesInFS(pattern string) []string {
 	return pkgs
 }
 
+// matchPackagesInFS returns a list of package paths matching pattern,
+// which must begin with ./ or ../
+// (see go help packages for pattern syntax).
 func (c *Context) matchPackagesInFS(pattern string) []string {
 	// Find directory to begin the scan.
 	// Could be smarter but this one optimization
@@ -260,7 +265,7 @@ func (c *Context) matchPackagesInFS(pattern string) []string {
 	return pkgs
 }
 
-// isMetaPackage checks if name is a reserved package name that expands to multiple packages
+// isMetaPackage checks if name is a reserved package name that expands to multiple packages.
 func isMetaPackage(name string) bool {
 	return name == "std" || name == "cmd" || name == "all"
 }
